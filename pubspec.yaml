@@ -17,6 +17,8 @@ dependencies:
   path_provider: ^2.0.11  # 新增加的依赖
   # clipboard_watcher: ^0.2.1
   file_picker: ^5.0.0
+  expandable_text: ^2.3.0
+  
   # clipboard_listener: ^2.0.0
   # clipboard_watcher: ^0.2.0
   # clipboard_watcher: ^0.2.1

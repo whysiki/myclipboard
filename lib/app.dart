@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'clipboard_manager.dart';
+import 'package:expandable_text/expandable_text.dart';
 
 class ClipboardApp extends StatefulWidget {
   const ClipboardApp({super.key});
@@ -10,11 +11,13 @@ class ClipboardApp extends StatefulWidget {
   ClipboardAppState createState() => ClipboardAppState();
 }
 
+//extends State<ClipboardApp> 表示 ClipboardAppState 类继承自 State<ClipboardApp> 类，
+//State 是 Flutter 中用于管理 Widget 状态的基类。
 class ClipboardAppState extends State<ClipboardApp> {
   List<Map<String, dynamic>> clipboardHistory = [];
   late SharedPreferences prefs;
   Timer? clipboardTimer;
-  String searchQuery = '';
+  String searchQuery = ''; //搜索关键字
   bool isDarkMode = true;
   bool isDescending = true;
   late ClipboardManager clipboardManager;
@@ -22,6 +25,7 @@ class ClipboardAppState extends State<ClipboardApp> {
   @override
   void initState() {
     super.initState();
+    //setState 方法用于通知 Flutter 框架更新 Widget 状态。
     clipboardManager = ClipboardManager(this, setState);
     clipboardManager.loadPreferences();
     clipboardManager.loadClipboardHistory();
@@ -96,7 +100,14 @@ class ClipboardAppState extends State<ClipboardApp> {
                     return Card(
                       margin: const EdgeInsets.symmetric(vertical: 4.0),
                       child: ListTile(
-                        title: Text(filteredHistory[index]['text']),
+                        // title: Text(filteredHistory[index]['text']),
+                        title: ExpandableText(
+                          filteredHistory[index]['text'],
+                          expandText: '展开',
+                          collapseText: '收起',
+                          maxLines: 4,
+                          linkColor: Colors.blue,
+                        ),
                         subtitle: Text(filteredHistory[index]['timestamp']),
                         trailing: IconButton(
                           icon: const Icon(Icons.copy),
