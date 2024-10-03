@@ -33,7 +33,7 @@ class ClipboardManager {
   }
 
   void startClipboardMonitor() {
-    state.clipboardTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
+    state.clipboardTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       getClipboardContent();
     });
   }
