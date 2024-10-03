@@ -3,16 +3,19 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:file_picker/file_picker.dart';
 import 'app.dart';
+import 'package:intl/intl.dart'; // 用于格式化日期时间
+import 'package:open_file/open_file.dart'; // 用于打开文件
 
 class ClipboardManager {
-  // final 关键字用于声明 ClipboardManager 类的两个成员变量 state 和 setStateCallback，表示它们在被赋值后不能再被更改。
   final ClipboardAppState state;
   final Function(VoidCallback) setStateCallback;
+  final ValueNotifier<ThemeMode> themeNotifier;
 
-  ClipboardManager(this.state, this.setStateCallback);
+  ClipboardManager(this.state, this.setStateCallback, this.themeNotifier);
 
   Future<void> loadClipboardHistory() async {
     state.prefs = await SharedPreferences.getInstance();
@@ -23,9 +26,6 @@ class ClipboardManager {
               .toList();
     });
   }
-
-  // Future<void> 表示一个异步操作，该操作不会返回任何值。
-  // Future 是 Dart 中用于处理异步编程的核心类，它表示一个可能在将来某个时间点完成的计算。
 
   Future<void> saveClipboardHistory() async {
     await state.prefs.setStringList('clipboardHistory',
@@ -79,10 +79,28 @@ class ClipboardManager {
 
   Future<void> exportClipboardHistory() async {
     try {
-      String? outputPath = await FilePicker.platform.saveFile(
-        dialogTitle: '选择导出路径',
-        fileName: 'clipboard_history.txt',
-      );
+      String? outputPath;
+
+      // 获取当前时间并格式化
+      final now = DateTime.now();
+      final formattedDate = DateFormat('yyyyMMdd_HHmmss').format(now);
+
+      if (Platform.isWindows) {
+        outputPath = await FilePicker.platform.saveFile(
+          dialogTitle: '选择导出路径',
+          fileName: 'clipboard_history_$formattedDate.txt',
+        );
+      } else if (Platform.isAndroid) {
+        final directory = await getExternalStorageDirectory();
+        if (directory != null) {
+          final downloadDir = Directory('${directory.path}/Download');
+          if (!await downloadDir.exists()) {
+            await downloadDir.create(recursive: true);
+          }
+          outputPath =
+              '${downloadDir.path}/clipboard_history_$formattedDate.txt';
+        }
+      }
 
       if (outputPath != null) {
         final file = File(outputPath);
@@ -90,7 +108,15 @@ class ClipboardManager {
             state.clipboardHistory.map((item) => item['text']).join('\n'));
         if (state.mounted) {
           ScaffoldMessenger.of(state.context).showSnackBar(
-            SnackBar(content: Text('剪贴板历史已导出到 $outputPath')),
+            SnackBar(
+              content: Text('剪贴板历史已导出到 $outputPath'),
+              action: SnackBarAction(
+                label: '打开',
+                onPressed: () {
+                  OpenFile.open(outputPath);
+                },
+              ),
+            ),
           );
         }
       } else {
@@ -113,12 +139,14 @@ class ClipboardManager {
     state.prefs = await SharedPreferences.getInstance();
     setStateCallback(() {
       state.isDarkMode = state.prefs.getBool('isDarkMode') ?? true;
+      themeNotifier.value = state.isDarkMode ? ThemeMode.dark : ThemeMode.light;
     });
   }
 
   void toggleTheme() async {
     setStateCallback(() {
       state.isDarkMode = !state.isDarkMode;
+      themeNotifier.value = state.isDarkMode ? ThemeMode.dark : ThemeMode.light;
     });
     await state.prefs.setBool('isDarkMode', state.isDarkMode);
   }

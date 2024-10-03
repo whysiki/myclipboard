@@ -5,14 +5,16 @@ import 'clipboard_manager.dart';
 import 'package:expandable_text/expandable_text.dart';
 
 class ClipboardApp extends StatefulWidget {
-  const ClipboardApp({super.key});
+  final ValueNotifier<ThemeMode> themeNotifier;
+
+  //required 关键字表示这个参数是必需的，调用构造函数时必须提供这个参数。
+
+  const ClipboardApp({super.key, required this.themeNotifier});
 
   @override
   ClipboardAppState createState() => ClipboardAppState();
 }
 
-//extends State<ClipboardApp> 表示 ClipboardAppState 类继承自 State<ClipboardApp> 类，
-//State 是 Flutter 中用于管理 Widget 状态的基类。
 class ClipboardAppState extends State<ClipboardApp> {
   List<Map<String, dynamic>> clipboardHistory = [];
   late SharedPreferences prefs;
@@ -25,8 +27,7 @@ class ClipboardAppState extends State<ClipboardApp> {
   @override
   void initState() {
     super.initState();
-    //setState 方法用于通知 Flutter 框架更新 Widget 状态。
-    clipboardManager = ClipboardManager(this, setState);
+    clipboardManager = ClipboardManager(this, setState, widget.themeNotifier);
     clipboardManager.loadPreferences();
     clipboardManager.loadClipboardHistory();
     clipboardManager.startClipboardMonitor();
@@ -47,79 +48,112 @@ class ClipboardAppState extends State<ClipboardApp> {
           ? b['timestamp'].compareTo(a['timestamp'])
           : a['timestamp'].compareTo(b['timestamp']));
 
-    return MaterialApp(
-      theme: ThemeData.light(),
-      darkTheme: ThemeData.dark(),
-      themeMode: isDarkMode ? ThemeMode.dark : ThemeMode.light,
-      home: Scaffold(
-        appBar: AppBar(
-          title: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: '搜索剪贴板历史...',
-                border: InputBorder.none,
-                filled: true,
-                fillColor: Colors.white.withOpacity(0.1),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16.0),
+    return Scaffold(
+      appBar: AppBar(
+        title: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+          child: TextField(
+            decoration: InputDecoration(
+              hintText: '搜索剪贴板历史...',
+              border: InputBorder.none,
+              filled: true,
+              // fillColor:
+              // const Color.fromARGB(255, 172, 172, 172).withOpacity(0.1),
+              fillColor: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white.withOpacity(0.1)
+                  : Colors.black.withOpacity(0.1), // 根据主题模式设置背景颜色
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16.0),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(30.0), // 设置圆角边框
+                borderSide: BorderSide.none,
               ),
-              onChanged: (value) {
-                setState(() {
-                  searchQuery = value;
-                });
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(30.0), // 设置圆角边框
+                borderSide: BorderSide.none,
+              ),
+            ),
+            onChanged: (value) {
+              setState(() {
+                searchQuery = value;
+              });
+            },
+          ),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.brightness_6),
+            onPressed: clipboardManager.toggleTheme,
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete),
+            onPressed: () => _showDeleteConfirmationDialog(context),
+          ),
+          IconButton(
+            icon: const Icon(Icons.download),
+            onPressed: clipboardManager.exportClipboardHistory,
+          ),
+          IconButton(
+            icon:
+                Icon(isDescending ? Icons.arrow_downward : Icons.arrow_upward),
+            onPressed: clipboardManager.toggleSortOrder,
+          ),
+        ],
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: filteredHistory.isEmpty
+            ? const Center(child: Text('剪贴板历史为空'))
+            : ListView.builder(
+                itemCount: filteredHistory.length,
+                itemBuilder: (context, index) {
+                  return Card(
+                    margin: const EdgeInsets.symmetric(vertical: 4.0),
+                    child: ListTile(
+                      title: ExpandableText(
+                        filteredHistory[index]['text'],
+                        expandText: '展开',
+                        collapseText: '收起',
+                        maxLines: 4,
+                        linkColor: Colors.blue,
+                      ),
+                      subtitle: Text(filteredHistory[index]['timestamp']),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.copy),
+                        onPressed: () => clipboardManager
+                            .copyToClipboard(filteredHistory[index]['text']),
+                      ),
+                    ),
+                  );
+                },
+              ),
+      ),
+    );
+  }
+
+  void _showDeleteConfirmationDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('确认删除'),
+          content: const Text('你确定要清空剪贴板历史吗？'),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('取消'),
+              onPressed: () {
+                Navigator.of(context).pop();
               },
             ),
-          ),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.brightness_6),
-              onPressed: clipboardManager.toggleTheme,
-            ),
-            IconButton(
-              icon: const Icon(Icons.delete),
-              onPressed: clipboardManager.clearClipboardHistory,
-            ),
-            IconButton(
-              icon: const Icon(Icons.download),
-              onPressed: clipboardManager.exportClipboardHistory,
-            ),
-            IconButton(
-              icon: Icon(
-                  isDescending ? Icons.arrow_downward : Icons.arrow_upward),
-              onPressed: clipboardManager.toggleSortOrder,
+            TextButton(
+              child: const Text('确认'),
+              onPressed: () {
+                clipboardManager.clearClipboardHistory();
+                Navigator.of(context).pop();
+              },
             ),
           ],
-        ),
-        body: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: filteredHistory.isEmpty
-              ? const Center(child: Text('剪贴板历史为空'))
-              : ListView.builder(
-                  itemCount: filteredHistory.length,
-                  itemBuilder: (context, index) {
-                    return Card(
-                      margin: const EdgeInsets.symmetric(vertical: 4.0),
-                      child: ListTile(
-                        // title: Text(filteredHistory[index]['text']),
-                        title: ExpandableText(
-                          filteredHistory[index]['text'],
-                          expandText: '展开',
-                          collapseText: '收起',
-                          maxLines: 4,
-                          linkColor: Colors.blue,
-                        ),
-                        subtitle: Text(filteredHistory[index]['timestamp']),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.copy),
-                          onPressed: () => clipboardManager
-                              .copyToClipboard(filteredHistory[index]['text']),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
