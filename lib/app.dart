@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'clipboard_manager.dart';
 import 'package:expandable_text/expandable_text.dart';
+// import 'overlay_window.dart';
+import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 
 class ClipboardApp extends StatefulWidget {
   const ClipboardApp({super.key});
@@ -11,8 +13,6 @@ class ClipboardApp extends StatefulWidget {
   ClipboardAppState createState() => ClipboardAppState();
 }
 
-//extends State<ClipboardApp> 表示 ClipboardAppState 类继承自 State<ClipboardApp> 类，
-//State 是 Flutter 中用于管理 Widget 状态的基类。
 class ClipboardAppState extends State<ClipboardApp> {
   List<Map<String, dynamic>> clipboardHistory = [];
   late SharedPreferences prefs;
@@ -25,7 +25,6 @@ class ClipboardAppState extends State<ClipboardApp> {
   @override
   void initState() {
     super.initState();
-    //setState 方法用于通知 Flutter 框架更新 Widget 状态。
     clipboardManager = ClipboardManager(this, setState);
     clipboardManager.loadPreferences();
     clipboardManager.loadClipboardHistory();
@@ -100,7 +99,6 @@ class ClipboardAppState extends State<ClipboardApp> {
                     return Card(
                       margin: const EdgeInsets.symmetric(vertical: 4.0),
                       child: ListTile(
-                        // title: Text(filteredHistory[index]['text']),
                         title: ExpandableText(
                           filteredHistory[index]['text'],
                           expandText: '展开',
@@ -118,6 +116,22 @@ class ClipboardAppState extends State<ClipboardApp> {
                     );
                   },
                 ),
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () async {
+            await FlutterOverlayWindow.showOverlay(
+              // overlay: OverlayWindow(),
+              height: WindowSize.fullCover,
+              width: WindowSize.matchParent,
+              alignment: OverlayAlignment.center,
+              // visibilitySecret: NotificationVisibility.visibilitySecret,
+              overlayTitle: "Overlay Activated",
+              overlayContent: "Click to open",
+              enableDrag: true,
+              positionGravity: PositionGravity.none,
+            );
+          },
+          child: const Icon(Icons.open_in_new),
         ),
       ),
     );

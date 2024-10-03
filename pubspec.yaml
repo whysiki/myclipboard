@@ -18,6 +18,7 @@ dependencies:
   # clipboard_watcher: ^0.2.1
   file_picker: ^5.0.0
   expandable_text: ^2.3.0
+  flutter_overlay_window: ^0.4.5
   
   # clipboard_listener: ^2.0.0
   # clipboard_watcher: ^0.2.0
